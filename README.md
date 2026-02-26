@@ -1,0 +1,147 @@
+# Default Framework — Playwright Skeleton
+
+A minimal Playwright end-to-end testing skeleton following the **Page Object Model (POM)** pattern. Use this as a starting point for new QA projects.
+
+---
+
+## Project Structure
+
+```
+Default_Framework/
+├── .github/
+│   └── workflows/
+│       └── playwright.yml      # CI pipeline (GitHub Actions)
+├── pages/
+│   ├── BasePage.js             # Base class — shared browser helpers
+│   └── PlaywrightPage.js       # Example page object (playwright.dev)
+├── tests/
+│   └── example.spec.js         # Example test using POM
+├── playwright.config.js        # Playwright configuration
+├── package.json
+└── README.md
+```
+
+---
+
+## Prerequisites
+
+- [Node.js](https://nodejs.org/) v18+
+- npm v9+
+
+---
+
+## Installation
+
+```bash
+npm install
+npx playwright install
+```
+
+---
+
+## Running Tests
+
+| Command | Description |
+|---|---|
+| `npx playwright test` | Run all tests (headless) |
+| `npx playwright test --headed` | Run with browser visible |
+| `npx playwright test --ui` | Open Playwright UI mode |
+| `npx playwright test --project=chromium` | Run on a single browser |
+| `npx playwright show-report` | Open the last HTML report |
+
+---
+
+## Page Object Model Pattern
+
+### How it works
+
+```
+tests/
+  └── example.spec.js      ← imports page objects, contains expect()
+
+pages/
+  ├── BasePage.js          ← shared helpers (navigate, getTitle, waitForLoad)
+  └── PlaywrightPage.js    ← page-specific locators + actions
+```
+
+**Rules:**
+- Locators and actions live in page objects, **not** in tests.
+- Assertions (`expect`) live in tests, **not** in page objects.
+- Every page object extends `BasePage`.
+
+---
+
+## Adding a New Page Object
+
+1. Create `pages/MyFeaturePage.js`:
+
+```js
+// @ts-check
+import { BasePage } from './BasePage.js';
+
+export class MyFeaturePage extends BasePage {
+  constructor(page) {
+    super(page);
+  }
+
+  async goto() {
+    await this.navigate('https://example.com/feature');
+  }
+
+  // Locators
+  get submitButton() {
+    return this.page.getByRole('button', { name: 'Submit' });
+  }
+
+  // Actions
+  async clickSubmit() {
+    await this.submitButton.click();
+  }
+}
+```
+
+2. Import and use it in your test:
+
+```js
+import { test, expect } from '@playwright/test';
+import { MyFeaturePage } from '../pages/MyFeaturePage.js';
+
+test('submits the form', async ({ page }) => {
+  const featurePage = new MyFeaturePage(page);
+  await featurePage.goto();
+  await featurePage.clickSubmit();
+  // assertions here...
+});
+```
+
+---
+
+## CI/CD
+
+Tests run automatically on every push and pull request to `main`/`master` via GitHub Actions (`.github/workflows/playwright.yml`).
+
+- Browsers: Chromium, Firefox, WebKit
+- Retries: 2 (CI only)
+- Workers: 1 (CI), auto (local)
+- Report: uploaded as a GitHub Actions artifact (30-day retention)
+
+---
+
+## Configuration
+
+Key settings in `playwright.config.js`:
+
+| Setting | Value | Notes |
+|---|---|---|
+| `testDir` | `./tests` | Where tests are discovered |
+| `fullyParallel` | `true` | Tests run in parallel |
+| `reporter` | `html` | HTML report generated after each run |
+| `trace` | `on-first-retry` | Traces captured on retry for debugging |
+
+To set a base URL (e.g. for a staging environment), uncomment and update:
+```js
+use: {
+  baseURL: 'https://staging.example.com',
+}
+```
+Then use `await page.goto('/path')` in your page objects.
